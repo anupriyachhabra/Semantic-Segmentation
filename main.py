@@ -32,8 +32,17 @@ def load_vgg(sess, vgg_path):
     vgg_layer3_out_tensor_name = 'layer3_out:0'
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
-    
-    return None, None, None, None, None
+
+    tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
+
+    graph = tf.get_default_graph()
+    input_image = graph.get_tensor_by_name(vgg_input_tensor_name)
+    keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    vgg_layer3_out = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    vgg_layer4_out = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    vgg_layer7_out = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+
+    return input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -47,7 +56,35 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    return None
+
+    # Encoding
+    #Encoding done by vgg
+
+    #Conv1x1
+    layer_1_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+
+
+    #Decoding
+    deconv_layer_1 = tf.layers.conv2d_transpose(layer_1_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same')
+
+    #We want to add 2 more layers to deconvolution using skip layers from vgg_layer3 and vgg_layer4 on it
+
+    # prepare 1st skip layer (add vgg_layer_oytput to an existing deconvoluted layer)
+    layer_1_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+    skip_1 = tf.add(deconv_layer_1, layer_1_2)
+
+    # Decode 1st skip layer
+    deconv_layer_2 = tf.layers.conv2d_transpose(skip_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same')
+
+
+    # Prepare 2nd skip layer
+    layer_1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+    skip_2 = tf.add(deconv_layer_2, layer_1_3)
+
+    #Decode 2nd skip layer
+    deconv_layer_3 = tf.layers.conv2d_transpose(skip_2, num_classes, kernel_size=(16, 16), strides=(8, 8), padding='same')
+
+    return deconv_layer_3
 tests.test_layers(layers)
 
 
@@ -61,7 +98,16 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    return None, None, None
+
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    labels = tf.reshape(correct_label, (-1, num_classes))
+
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+
+    return logits, train_op, cross_entropy_loss
+
 tests.test_optimize(optimize)
 
 
@@ -109,6 +155,18 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
+        input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
+
+        last_layer = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
+
+        learning_rate = tf.placeholder(tf.float32, name='learning-rate')
+
+        correct_label = tf.placeholder(tf.float32, (None, image_shape[0], image_shape[1], num_classes),
+                                       name='correct-label')
+
+        logits, train_op, cross_entropy_loss = optimize(last_layer, correct_label, learning_rate,
+                                                        num_classes)
+
 
         # TODO: Train NN using the train_nn function
 
