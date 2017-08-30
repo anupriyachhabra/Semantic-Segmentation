@@ -84,6 +84,8 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #Decode 2nd skip layer
     deconv_layer_3 = tf.layers.conv2d_transpose(skip_2, num_classes, kernel_size=(16, 16), strides=(8, 8), padding='same')
 
+    #print(deconv_layer_3.shape)
+
     return deconv_layer_3
 tests.test_layers(layers)
 
@@ -127,7 +129,21 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
-    pass
+    rate = 0.0005
+    prob = 0.7
+    display_step = 50
+
+    for e in range(epochs):
+        step = 0
+        for images, labels in get_batches_fn(batch_size):
+
+            _, loss = sess.run([train_op, cross_entropy_loss],
+                     feed_dict={input_image: images, correct_label: labels,
+                                keep_prob: prob, learning_rate: rate})
+
+            if step % display_step == 0:
+                print("Epoch: ", e, " Itr: ", step, " Loss: ",loss)
+            step += 1
 tests.test_train_nn(train_nn)
 
 
@@ -144,6 +160,10 @@ def run():
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
+
+    batch_size = 8
+    epochs = 30
+
 
     with tf.Session() as sess:
         # Path to vgg model
@@ -169,9 +189,20 @@ def run():
 
 
         # TODO: Train NN using the train_nn function
+        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+        train_nn(sess,
+                 epochs,
+                 batch_size,
+                 get_batches_fn,
+                 train_op,
+                 cross_entropy_loss,
+                 input_image,
+                 correct_label,
+                 keep_prob,
+                 learning_rate)
 
         # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
