@@ -100,7 +100,8 @@ ENV/
 # mypy
 .mypy_cache/
 
-/RUNS
+RUNS
+runs/
 
 # Project specific ignores
 .idea/
