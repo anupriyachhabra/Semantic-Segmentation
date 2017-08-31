@@ -61,28 +61,34 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #Encoding done by vgg
 
     #Conv1x1
-    layer_1_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+    layer_1_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, kernel_size=(1, 1), strides=(1, 1), padding='same',
+                                 kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
 
 
     #Decoding
-    deconv_layer_1 = tf.layers.conv2d_transpose(layer_1_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same')
+    deconv_layer_1 = tf.layers.conv2d_transpose(layer_1_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same',
+                                                kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
 
     #We want to add 2 more layers to deconvolution using skip layers from vgg_layer3 and vgg_layer4 on it
 
     # prepare 1st skip layer (add vgg_layer_oytput to an existing deconvoluted layer)
-    layer_1_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+    layer_1_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, kernel_size=(1, 1), strides=(1, 1), padding='same',
+                                 kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
     skip_1 = tf.add(deconv_layer_1, layer_1_2)
 
     # Decode 1st skip layer
-    deconv_layer_2 = tf.layers.conv2d_transpose(skip_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same')
+    deconv_layer_2 = tf.layers.conv2d_transpose(skip_1, num_classes, kernel_size=(4, 4), strides=(2, 2), padding='same',
+                                                kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
 
 
     # Prepare 2nd skip layer
-    layer_1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size=(1, 1), strides=(1, 1))
+    layer_1_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, kernel_size=(1, 1), strides=(1, 1), padding='same',
+                                 kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
     skip_2 = tf.add(deconv_layer_2, layer_1_3)
 
     #Decode 2nd skip layer
-    deconv_layer_3 = tf.layers.conv2d_transpose(skip_2, num_classes, kernel_size=(16, 16), strides=(8, 8), padding='same')
+    deconv_layer_3 = tf.layers.conv2d_transpose(skip_2, num_classes, kernel_size=(16, 16), strides=(8, 8), padding='same',
+                                                kernel_initializer=tf.truncated_normal_initializer(stddev = 0.01))
 
     #print(deconv_layer_3.shape)
 
@@ -129,8 +135,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
-    rate = 0.0005
-    prob = 0.7
+    rate = 0.00005
+    prob = 0.8
     display_step = 50
 
     for e in range(epochs):
@@ -162,7 +168,7 @@ def run():
     #  https://www.cityscapes-dataset.com/
 
     batch_size = 2
-    epochs = 2
+    epochs = 6
 
 
     with tf.Session() as sess:
