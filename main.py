@@ -161,8 +161,8 @@ def run():
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
 
-    batch_size = 8
-    epochs = 30
+    batch_size = 2
+    epochs = 2
 
 
     with tf.Session() as sess:
